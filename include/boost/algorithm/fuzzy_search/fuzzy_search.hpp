@@ -50,7 +50,7 @@ void preprocess_helper_mismatch(ForwardIt1 first,
     s.push_back(*S1.begin());
     for (auto &c : S1) {
       for (int j = 1; j <= m; ++j) {
-        D[i][j] = D[i - 1][j - 1] + ((c == *std::next(first, j - 1)) ? 0 : 1);
+        D[i][j] = D[i - 1][j - 1] + ((c == *std::next(first, j - 1)) ? 0 : 1); //TODO: 1D
       }
       // TODO: For maximum performance it is crucial how the value of a q-gram is computed during searching.
       s.back() = c;
@@ -195,16 +195,17 @@ bool validate_mismatch(ForwardIt1 first, ForwardIt2 s_first, size_t k, size_t m)
  */
 template <class ForwardIt1, class ForwardIt2>
 bool validate_difference(ForwardIt1 first, ForwardIt2 s_first, size_t k, size_t m) {  // TODO bidir specialization
-  std::vector<std::vector<size_t>> D(m + k + 1, std::vector<size_t>(m + 1, 0));
-
+  std::vector<size_t> line1(m + 1, 0), line2(m + 1, 0);
+  std::vector<size_t> *curr=&line1, *prev=&line2;
   for (int i = 1; i < m + k + 1; ++i) {
     for (int j = 1; j < m + 1; ++j) {
-      size_t a1 = D[i - 1][j] + 1, a2 = D[i][j - 1] + 1,
-          a3 = D[i - 1][j - 1] + ((*std::next(first, i - 1) == *std::next(s_first, j - 1)) ? 0 : 1);
-      D[i][j]   = std::min({a1, a2, a3});
+      size_t a1 = (*prev)[j] + 1, a2 = (*curr)[j - 1] + 1,
+          a3 = (*prev)[j - 1] + ((*std::next(first, i - 1) == *std::next(s_first, j - 1)) ? 0 : 1);
+      (*curr)[j]   = std::min({a1, a2, a3});
     }
+    std::swap(curr, prev);
   }
-  return D[m + k][m] <= k;  // TODO
+  return (*prev)[m] <= k;  // TODO
 }
 
 /**
@@ -232,6 +233,7 @@ ForwardIt1 fuzzy_search(
   // TODO optimal parameters and corner cases
   size_t reduced_alphabet_size = 16;  // size of reduced alphabet
   size_t q                     = 5;   // size of qgrams
+  // should depend on searched data size
 
   size_t start_search_position = mismatch ? m - q : m - k - q;
 
